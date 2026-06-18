@@ -8,9 +8,17 @@ function setOrientation(orientation = "horizontal") {
 
 function paint({ currentState }) {
   const mode = currentState.mode || "idle";
-  lamps.forEach((lamp) =>
-    lamp.classList.toggle("active", lamp.dataset.mode === mode)
-  );
+  // waiting 复用 working(黄)灯位，但通过 data-active-mode 显示为橙色闪烁
+  const slotMode = mode === "waiting" ? "working" : mode;
+  lamps.forEach((lamp) => {
+    const isActive = lamp.dataset.mode === slotMode;
+    lamp.classList.toggle("active", isActive);
+    if (isActive) {
+      lamp.dataset.activeMode = mode;
+    } else {
+      delete lamp.dataset.activeMode;
+    }
+  });
 }
 
 window.addEventListener("contextmenu", (event) => {

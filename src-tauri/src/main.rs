@@ -15,7 +15,9 @@ use std::{
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 use tauri::{
-    menu::MenuBuilder, Emitter, Manager, PhysicalPosition, PhysicalSize, Position, Size,
+    menu::MenuBuilder,
+    tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
+    Emitter, Manager, PhysicalPosition, PhysicalSize, Position, Size,
     WebviewWindow, WindowEvent,
 };
 
@@ -552,6 +554,16 @@ fn main() {
             let id = event.id().as_ref();
             match id {
                 "quit" => app.exit(0),
+                "show" => {
+                    if let Some(w) = app.get_webview_window("main") {
+                        if w.is_visible().unwrap_or(false) {
+                            let _ = w.hide();
+                        } else {
+                            let _ = w.show();
+                            let _ = w.set_focus();
+                        }
+                    }
+                }
                 "horizontal" | "vertical" => {
                     if let Some(w) = app.get_webview_window("main") {
                         let _ = apply_orientation(&w, &menu_state, id.to_string());
@@ -584,6 +596,37 @@ fn main() {
             let app_handle = app.handle().clone();
             start_http_server(app_handle, state.clone());
             let _ = snap_window_inner(&window, &state);
+
+            // 系统托盘：左键点击切换窗口显示，右键菜单含 显示/隐藏、退出
+            let tray_menu = MenuBuilder::new(app)
+                .text("show", "显示/隐藏")
+                .separator()
+                .text("quit", "退出")
+                .build()?;
+            let _tray = TrayIconBuilder::new()
+                .icon(app.default_window_icon().cloned().ok_or("no window icon")?)
+                .menu(&tray_menu)
+                .tooltip("Agent Status Light")
+                .on_tray_icon_event(|tray, event| {
+                    if let TrayIconEvent::Click {
+                        button: MouseButton::Left,
+                        button_state: MouseButtonState::Up,
+                        ..
+                    } = event
+                    {
+                        let app = tray.app_handle();
+                        if let Some(w) = app.get_webview_window("main") {
+                            if w.is_visible().unwrap_or(false) {
+                                let _ = w.hide();
+                            } else {
+                                let _ = w.show();
+                                let _ = w.set_focus();
+                            }
+                        }
+                    }
+                })
+                .build(app)?;
+
             Ok(())
         })
         .run(tauri::generate_context!())

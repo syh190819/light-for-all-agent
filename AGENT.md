@@ -59,8 +59,10 @@ GET http://127.0.0.1:37421/status
 ### 1. 启动灯端
 
 - 本地开发：`npm install` + `npm run dev`
-- 生产环境：运行 `dist/Light-for-all-Agent-0.1.0-x64-portable.exe`
+- 生产环境：运行 `dist/Light-for-all-Agent-0.1.0-x64-portable.exe`（需 `WebView2Loader.dll` 同目录）
 - 启动后，灯端会监听 `http://127.0.0.1:37421`
+- 应用常驻系统托盘（右下角），**不在任务栏显示**；托盘左键点击可隐藏/显示悬浮窗
+- 若 `GET /status` 无响应，可能是应用未启动或窗口被隐藏（但 API 仍可用）
 
 ### 2. Agent 发送状态
 
@@ -86,11 +88,11 @@ curl -X POST http://127.0.0.1:37421/status \
 | 层 | 技术 |
 |----|------|
 | 前端 | 纯 HTML + CSS + JS（无框架） |
-| 后端 | Rust 1.94.0 + Tauri v2 |
+| 后端 | Rust 1.94.0 + Tauri v2（含系统托盘） |
 | 工具链 | `x86_64-pc-windows-gnu`（通过 `src-tauri/rust-toolchain.toml` 锁定） |
 | 链接器 | MSYS2 MinGW-w64（提供 `gcc`/`dlltool`/`ld`） |
 | 通信 | HTTP REST API（`127.0.0.1:37421`） |
-| 产物 | ~5MB 便携版 exe |
+| 产物 | 约 18MB 便携版 exe（静态链接，附 WebView2Loader.dll） |
 
 > ⚠️ Rust 版本必须锁在 1.94.0，1.96+ 与依赖存在不兼容问题。Windows 构建走 GNU 工具链，需 MSYS2 提供 MinGW 链接器，**无需安装 Visual Studio**。完整搭建步骤见 `docs/process.md`。
 

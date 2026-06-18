@@ -184,8 +184,11 @@ npm run dist:installer
 
 ### 构建产物说明
 
-- `dist/Light-for-all-Agent-0.1.0-x64-portable.exe`：便携版运行文件
+- `dist/Light-for-all-Agent-0.1.0-x64-portable.exe`：便携版运行文件（约 18MB，静态链接 libgcc）
+- `dist/WebView2Loader.dll`：WebView2 加载器（约 156KB，**必须与 exe 同目录**）
 - `src-tauri/target/release`：Tauri build 的默认产物目录
+
+> ⚠️ 便携版运行依赖 `WebView2Loader.dll`，分发时需将 exe 和 dll 一起打包。该 DLL 是 WebView2 的隐式依赖（非延迟加载），缺少时 exe 启动报 `0xC0000135`（STATUS_DLL_NOT_FOUND）。
 
 ---
 
@@ -193,9 +196,9 @@ npm run dist:installer
 
 ### 直接部署
 
-1. 复制 `dist/Light-for-all-Agent-0.1.0-x64-portable.exe` 到目标机器
-2. 双击运行
-3. 桌面出现悬浮状态灯
+1. 复制 `dist/` 目录下的 `Light-for-all-Agent-0.1.0-x64-portable.exe` **和** `WebView2Loader.dll` 到目标机器（两者须在同一目录）
+2. 双击运行 exe
+3. 桌面出现悬浮状态灯，系统托盘出现三色灯图标
 
 ### 安装部署
 
@@ -205,9 +208,13 @@ npm run dist:installer
 
 ### 运行后的效果
 
-- 应用启动后，会在 Windows 桌面上常驻一个悬浮窗口
-- 该窗口支持拖动、吸附、横向/竖向切换、右键菜单和开机自启
-- 应用同时监听 `127.0.0.1:37421`
+- 应用启动后，会在 Windows 桌面上常驻一个悬浮窗口，并在系统托盘（右下角）显示三色灯图标
+- **不在任务栏显示图标**（`skipTaskbar: true`）
+- 系统托盘交互：
+  - 左键点击托盘图标：切换悬浮窗显示/隐藏
+  - 右键点击托盘图标：弹出菜单（显示/隐藏、退出）
+- 悬浮窗支持拖动、边缘吸附、横向/竖向切换（右键菜单）、开机自启（右键菜单）
+- 应用同时监听 `127.0.0.1:37421`，窗口隐藏时 API 仍可用
 
 ---
 
@@ -377,6 +384,19 @@ print('icon.ico regenerated')"
 - 错误表现：`could not execute process ... never executed`
 - 原因：系统虚拟内存不足，build script 进程无法启动
 - 解决方式：增大 Windows 虚拟内存，或关闭其他占用内存的应用
+
+#### 6.3.8 便携版 exe 启动报 `0xC0000135`（DLL 缺失）
+
+- 错误表现：双击 exe 无窗口出现，退出码 `0xC0000135`（`STATUS_DLL_NOT_FOUND`）
+- 原因1：缺少 `WebView2Loader.dll`（WebView2 隐式依赖，必须与 exe 同目录）
+  - 解决：确保 `dist/` 下有 `WebView2Loader.dll`，与 exe 放在同一目录
+- 原因2：缺少 `libgcc_s_seh-1.dll`（MinGW 运行时）
+  - 解决：项目 `.cargo/config.toml` 已配置 `-static-libgcc` 静态链接，重新 `npm run dist` 打包即可
+  - 若仍报错，确认 `.cargo/config.toml` 包含：
+    ```toml
+    [target.x86_64-pc-windows-gnu]
+    rustflags = ["-C", "link-args=-static-libgcc"]
+    ```
 
 ---
 

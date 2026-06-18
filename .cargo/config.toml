@@ -6,3 +6,11 @@ registry = "sparse+https://mirrors.ustc.edu.cn/crates.io-index/"
 
 [net]
 git-fetch-with-cli = true
+
+# 静态链接 libgcc 运行时，
+# 使 release exe 不再依赖 libgcc_s_seh-1.dll，实现真正可移植。
+# (winpthread 已由 Rust 默认通过 -l:libpthread.a 静态链接)
+[target.x86_64-pc-windows-gnu]
+rustflags = [
+  "-C", "link-args=-static-libgcc",
+]
