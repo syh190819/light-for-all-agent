@@ -1,0 +1,15 @@
+[package]
+name = "light-for-all-agent"
+version = "0.1.0"
+description = "通用 AI Agent 桌面状态灯 - 悬浮三色灯，实时显示 Agent 工作状态"
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+dirs = "6"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tauri = { version = "2", features = [] }
+winreg = "0.52"

@@ -1,0 +1,128 @@
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  background: transparent;
+}
+
+/* ── Shell ────────────────────────────────────────── */
+.shell {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+}
+
+/* ── Status plane ─────────────────────────────────── */
+.status-plane {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.08) 0%, transparent 70%),
+    linear-gradient(135deg, #1a1d21 0%, #2c2f33 100%);
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+}
+
+/* ── Traffic light ────────────────────────────────── */
+.traffic-light {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 12px;
+}
+
+/* ── Lamp ────────────────────────────────────── */
+.lamp {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.lamp span {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: block;
+  transition: all 0.3s ease;
+  background: rgba(255,255,255,0.06);
+}
+
+/* ── Idle (green) ─────────────────────────── */
+.lamp.active[data-mode="idle"] {
+  border-color: rgba(53, 220, 116, 0.5);
+}
+.lamp.active[data-mode="idle"] span {
+  background: #35dc74;
+  box-shadow: 0 0 12px rgba(53, 220, 116, 0.7);
+}
+
+/* ── Working (yellow) ─────────────────────── */
+.lamp.active[data-mode="working"] {
+  border-color: rgba(255, 212, 73, 0.5);
+}
+.lamp.active[data-mode="working"] span {
+  background: #ffd449;
+  box-shadow: 0 0 12px rgba(255, 212, 73, 0.7);
+}
+
+/* ── Waiting (orange blink) ───────────────── */
+@keyframes blink-waiting {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+.lamp.active[data-mode="waiting"] {
+  border-color: rgba(255, 152, 0, 0.5);
+  animation: blink-waiting 1s ease-in-out infinite;
+}
+.lamp.active[data-mode="waiting"] span {
+  background: #ff9800;
+  box-shadow: 0 0 12px rgba(255, 152, 0, 0.7);
+}
+
+/* ── Error (red) ──────────────────────────── */
+.lamp.active[data-mode="error"] {
+  border-color: rgba(255, 64, 55, 0.5);
+}
+.lamp.active[data-mode="error"] span {
+  background: #ff4037;
+  box-shadow: 0 0 12px rgba(255, 64, 55, 0.7);
+}
+
+/* ── Orientation: vertical ─────────────────── */
+html[data-orientation="vertical"] .traffic-light {
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 8px;
+}
+
+html[data-orientation="vertical"] .lamp {
+  width: 22px;
+  height: 22px;
+}
+
+html[data-orientation="vertical"] .lamp span {
+  width: 15px;
+  height: 15px;
+}

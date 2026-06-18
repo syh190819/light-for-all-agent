@@ -1,0 +1,35 @@
+{
+  "name": "light-for-all-agent",
+  "version": "0.1.0",
+  "description": "Light for All Agent - 通用 AI Agent 桌面状态灯。悬浮三色灯，实时显示 Agent 工作状态。",
+  "build": {
+    "frontendDist": "../src/renderer"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "Agent Status Light",
+        "width": 192,
+        "height": 72,
+        "resizable": false,
+        "fullscreen": false,
+        "decorations": false,
+        "alwaysOnTop": true,
+        "skipTaskbar": false,
+        "visible": true,
+        "transparent": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "icon": ["icons/icon.ico"],
+    "resources": []
+  }
+}
