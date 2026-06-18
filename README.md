@@ -23,40 +23,18 @@
 
 ## 如何使用
 
-### 1. 启动
+### 核心流程
 
-双击 `Light-for-all-Agent-0.1.0-x64-portable.exe`，桌面角落出现三色灯。
+- 启动灯端应用（可直接运行已打包的便携 exe 或使用开发模式）
+- 灯端会在本地监听 `http://127.0.0.1:37421`
+- Agent 通过 `POST /status` 更新当前状态
+- 支持状态：`idle`、`working`、`waiting`、`error`
 
-### 2. 与 Agent 联动
+### 运行简介
 
-在 WorkBuddy / 其他 AI 工具中，Agent 会自动通过 HTTP 更新状态：
-
-```bash
-# 告诉灯：我正在工作
-curl -X POST http://127.0.0.1:37421/status \
-  -H "Content-Type: application/json" \
-  -d '{"mode": "working"}'
-
-# 告诉灯：搞定了
-curl -X POST http://127.0.0.1:37421/status \
-  -H "Content-Type: application/json" \
-  -d '{"mode": "idle"}'
-```
-
-### 3. 右键菜单
-
-- **横向 / 竖向** — 切换灯条方向
-- **开机自启** — 注册 Windows 开机启动
-- **退出** — 关闭应用
-
-## 状态说明
-
-| mode | 灯色 | 含义 | 视觉 |
-|------|------|------|------|
-| `idle` | 🟢 绿 | 空闲、完成 | 常亮 |
-| `working` | 🟡 黄 | 正在执行 | 常亮 |
-| `waiting` | 🟠 橙 | 等待用户确认 | 闪烁 |
-| `error` | 🔴 红 | 失败、异常 | 常亮 |
+- 直接运行 `dist/Light-for-all-Agent-0.1.0-x64-portable.exe`，即可在桌面看到悬浮状态灯
+- 右键菜单可切换横向/竖向、开机自启和退出
+- 应用会实时展示状态变化，并通过 HTTP 接口与 Agent 联动
 
 ## 技术栈
 
@@ -65,7 +43,19 @@ curl -X POST http://127.0.0.1:37421/status \
 - **通信**：HTTP REST API（`127.0.0.1:37421`）
 - **包体**：~5MB 便携版 exe
 
+## 主要文档
+
+- 设计与架构：`docs/design.md`
+- 开发/测试/打包/部署流程：`docs/process.md`
+- Agent 使用与集成：`AGENT.md`
+
 ## 开发
+
+- `npm install`
+- `npm run dev`
+- `npm run dist`
+
+更多详细流程请参见 `docs/process.md`。
 
 ```bash
 # 安装依赖

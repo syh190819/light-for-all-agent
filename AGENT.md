@@ -54,9 +54,35 @@ GET http://127.0.0.1:37421/status
 
 返回当前 mode、message、orientation、autoStart 状态。
 
+## 使用与流程
+
+### 1. 启动灯端
+
+- 本地开发：`npm install` + `npm run dev`
+- 生产环境：运行 `dist/Light-for-all-Agent-0.1.0-x64-portable.exe`
+- 启动后，灯端会监听 `http://127.0.0.1:37421`
+
+### 2. Agent 发送状态
+
+- 通过 `POST /status` 更新状态
+- 仅支持四个 mode：`idle`、`working`、`waiting`、`error`
+- `message` 为可选字段，用于补充当前步骤说明
+
+示例：
+
+```bash
+curl -X POST http://127.0.0.1:37421/status \
+  -H "Content-Type: application/json" \
+  -d '{"mode":"waiting","message":"等待用户选择"}'
+```
+
+### 3. 详细流程文档
+
+- 开发、测试、打包、部署：`docs/process.md`
+- 设计与架构：`docs/design.md`
+
 ### 注意事项
 
-- 端口固定 `37421`，避免冲突
-- 应用关闭后 API 不可用（灯灭）
-- 不要过度发送 — 只在关键状态切换时发送，避免无意义刷新
-- `message` 字段可选，建议在 `working` 和 `error` 状态下附带简要说明
+- 端口固定为 `37421`
+- 应用关闭后 API 不可用
+- 尽量只在状态变化时发送请求，避免频繁刷新
