@@ -1,8 +1,12 @@
 #!/usr/bin/env node
 /**
  * Generate icons for Light for All Agent
- * Produces: build/icon.svg, build/icon.ico (multi-res)
+ * Produces: build/icon.svg, src-tauri/icons/icon.ico (PNG-based, valid CRC)
  * Based on Cursor Light's generate-icon.js
+ *
+ * 注意：生成的 ICO 内嵌 PNG（含正确 CRC）。
+ * 若 Tauri 报 "Invalid BMP header size"，说明 ICO 需为 BMP 格式，
+ * 此时请改用 docs/process.md 6.3.4 节的 Python 方案生成 BMP-based ICO。
  */
 const fs = require("fs");
 const path = require("path");
@@ -68,18 +72,39 @@ function generateMinimalIco() {
   entry.writeUInt16LE(32, 6);     // bits per pixel
 
   // We'll store the PNG data after the header+entry
-  // For now, create a minimal PNG (1x1 transparent)
-  const png = Buffer.from([
-    0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, // PNG signature
-    0x00, 0x00, 0x00, 0x0D, // IHDR chunk length
-    0x49, 0x48, 0x44, 0x52, // "IHDR"
+  // Use zlib.crc32 to compute valid CRC for each PNG chunk.
+  const zlib = require("zlib");
+
+  function makeChunk(type, data) {
+    const typeBuf = Buffer.from(type, "ascii");
+    const lenBuf = Buffer.alloc(4);
+    lenBuf.writeUInt32BE(data.length, 0);
+    const crcInput = Buffer.concat([typeBuf, Buffer.from(data)]);
+    const crc = zlib.crc32(crcInput);
+    const crcBuf = Buffer.alloc(4);
+    crcBuf.writeUInt32BE(crc >>> 0, 0);
+    return Buffer.concat([lenBuf, typeBuf, Buffer.from(data), crcBuf]);
+  }
+
+  // IHDR: 1x1, 8-bit RGBA
+  const ihdr = makeChunk("IHDR", Buffer.from([
     0x00, 0x00, 0x00, 0x01, // width: 1
     0x00, 0x00, 0x00, 0x01, // height: 1
-    0x08, 0x02,             // bit depth: 8, color type: RGB
+    0x08, 0x06,             // bit depth: 8, color type: RGBA
     0x00, 0x00, 0x00,       // compression, filter, interlace
-    0x00, 0x00, 0x00, 0x00, // CRC (placeholder)
-    0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, // IEND chunk
-    0xAE, 0x42, 0x60, 0x82  // IEND CRC
+  ]));
+
+  // IDAT: deflate-compressed scanline (filter byte 0 + 4 bytes RGBA)
+  const rawScanline = Buffer.from([0x00, 0x00, 0x00, 0x00, 0x00]); // filter=none + 1 transparent RGBA pixel
+  const idat = makeChunk("IDAT", zlib.deflateSync(rawScanline));
+
+  const iend = makeChunk("IEND", Buffer.alloc(0));
+
+  const png = Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]), // PNG signature
+    ihdr,
+    idat,
+    iend,
   ]);
 
   const totalSize = header.length + entry.length + png.length;

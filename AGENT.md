@@ -78,8 +78,21 @@ curl -X POST http://127.0.0.1:37421/status \
 
 ### 3. 详细流程文档
 
-- 开发、测试、打包、部署：`docs/process.md`
+- 开发、测试、打包、部署、环境搭建：`docs/process.md`
 - 设计与架构：`docs/design.md`
+
+## 技术栈与工具链
+
+| 层 | 技术 |
+|----|------|
+| 前端 | 纯 HTML + CSS + JS（无框架） |
+| 后端 | Rust 1.94.0 + Tauri v2 |
+| 工具链 | `x86_64-pc-windows-gnu`（通过 `src-tauri/rust-toolchain.toml` 锁定） |
+| 链接器 | MSYS2 MinGW-w64（提供 `gcc`/`dlltool`/`ld`） |
+| 通信 | HTTP REST API（`127.0.0.1:37421`） |
+| 产物 | ~5MB 便携版 exe |
+
+> ⚠️ Rust 版本必须锁在 1.94.0，1.96+ 与依赖存在不兼容问题。Windows 构建走 GNU 工具链，需 MSYS2 提供 MinGW 链接器，**无需安装 Visual Studio**。完整搭建步骤见 `docs/process.md`。
 
 ### 注意事项
 

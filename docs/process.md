@@ -10,47 +10,113 @@
 
 ### 环境准备
 
-- Node.js
-- npm
-- Rust toolchain（`cargo`）— **注意版本，详见下方 Rust 版本说明**
-- Tauri CLI
-- Windows 环境（项目目前以 Windows 为主）
+本地构建需要以下组件（均为一次安装）：
+
+| 组件 | 用途 | 安装方式 |
+|------|------|----------|
+| Node.js + npm | 前端依赖、调用 Tauri CLI | 官网安装包 |
+| Rust 工具链（rustup） | 编译 Rust 后端 | https://rustup.rs |
+| MSYS2 + MinGW-w64 | 提供 GNU 链接器（`gcc`/`dlltool`/`ld`） | winget 安装 |
+
+> 本项目在 Windows 上使用 **GNU 工具链**（`x86_64-pc-windows-gnu`），**无需安装 Visual Studio / VS Build Tools**。链接器由 MSYS2 的 MinGW-w64 提供。
+
+### 完整搭建步骤（Windows，从零开始）
+
+以下流程已在 Windows 10/11 + PowerShell 上实测通过。
+
+#### 步骤 1：安装 Node.js
+
+从 https://nodejs.org 下载 LTS 安装包，按默认选项安装即可。验证：
+
+```powershell
+node --version
+npm --version
+```
+
+> 💡 **若在 CodeBuddy IDE 内运行**：IDE 自带 Node.js，路径为
+> `C:\Users\<用户名>\.workbuddy\binaries\node\versions\<版本号>\`（如 `22.22.2`）。
+> 该路径未默认加入系统 PATH，在 IDE 外的终端需手动拼接或改用系统级安装的 Node.js。
+> IDE 内的命令执行环境会自动识别该 Node，`npm install` / `npm run dev` 可直接使用。
+
+#### 步骤 2：安装 Rust 工具链（rustup）
+
+从 https://rustup.rs 下载 `rustup-init.exe` 并运行。安装时默认选择 `x86_64-pc-windows-gnu` 作为 host triple（若已装成 msvc 也可后续切换）。
+
+验证：
+
+```powershell
+rustc --version
+cargo --version
+```
+
+#### 步骤 3：安装项目指定版本的 Rust
+
+项目通过 `src-tauri/rust-toolchain.toml` 锁定 Rust **1.94.0**。在项目 `src-tauri/` 目录下执行任意 `cargo` 命令时，rustup 会自动安装该版本；也可手动预装：
+
+```powershell
+rustup toolchain install 1.94.0-x86_64-pc-windows-gnu --profile minimal
+```
+
+> ⚠️ **不要使用 Rust 1.96+**，与依赖中的 `smallvec`、`syn` 等 crate 存在已知不兼容问题。
+
+#### 步骤 4：安装 MSYS2 + MinGW-w64（提供链接器）
+
+GNU 工具链编译时需要 `dlltool.exe`、`gcc.exe`、`ld.exe`，由 MSYS2 的 MinGW-w64 包提供。
+
+```powershell
+# 1) 安装 MSYS2
+winget install MSYS2.MSYS2 --accept-package-agreements --accept-source-agreements
+
+# 2) 用 MSYS2 的 pacman 安装 MinGW-w64 工具链（含 gcc/dlltool/ld/make 等一整套）
+& "C:\msys64\usr\bin\pacman.exe" -Syu --noconfirm
+& "C:\msys64\usr\bin\pacman.exe" -S --needed --noconfirm mingw-w64-x86_64-toolchain
+```
+
+#### 步骤 5：将 MinGW 加入系统 PATH
+
+将 `C:\msys64\mingw64\bin` 永久加入用户 PATH（PowerShell 执行一次即可）：
+
+```powershell
+$mingwPath = "C:\msys64\mingw64\bin"
+$current = [Environment]::GetEnvironmentVariable("Path", "User")
+if ($current -notlike "*$mingwPath*") {
+    [Environment]::SetEnvironmentVariable("Path", $current + ";" + $mingwPath, "User")
+}
+```
+
+**重新打开终端**后验证链接器可用：
+
+```powershell
+dlltool --version   # 应输出 GNU Binutils 版本
+gcc --version       # 应输出 gcc 版本
+```
+
+#### 步骤 6：安装前端依赖并构建
+
+```powershell
+cd <仓库根目录>
+npm install
+cd src-tauri
+cargo build
+```
+
+看到 `Finished dev profile ...` 即表示后端编译成功。
 
 ### Rust 版本说明
 
-项目通过 `src-tauri/rust-toolchain.toml` 锁定 Rust 版本。
-
-**当前要求：**
-- 使用 GNU 工具链（`x86_64-pc-windows-gnu`）
-- 推荐 Rust **1.93 ~ 1.95** 版本（通过 `RUSTUP_DIST_SERVER=https://static.rust-lang.org rustup install` 安装）
+- 项目通过 `src-tauri/rust-toolchain.toml` 锁定 Rust 版本
+- **当前要求：** 使用 GNU 工具链（`x86_64-pc-windows-gnu`），Rust **1.94.0**
 - **Rust 1.96+** 与依赖中的 `smallvec`、`syn` 等 crate 存在已知不兼容问题
-- 不推荐 MSVC 工具链（CET/Shadow Stack 保护可能导致编译器崩溃）
+- 切换版本命令：
+  ```powershell
+  rustup toolchain install 1.94.0-x86_64-pc-windows-gnu --profile minimal
+  rustup default 1.94.0-x86_64-pc-windows-gnu
+  rustc --version
+  ```
 
-切换版本命令：
-```bash
-# 安装指定版本（使用官方源）
-RUSTUP_DIST_SERVER=https://static.rust-lang.org rustup install 1.94.0-x86_64-pc-windows-gnu
+### 为什么不用 MSVC 工具链？
 
-# 查看当前版本
-rustc --version
-```
-
-### Windows 特定依赖
-
-- 推荐：Visual Studio Build Tools / Visual Studio 2022
-  - 安装时请选择“Desktop development with C++”工作负载
-  - 这会安装 `link.exe`、`lib.exe` 等 MSVC 链接器组件
-- 如果使用 GNU 工具链：
-  - 需要安装 MSYS2 或类似工具链
-  - 确保 `dlltool.exe` 在 PATH 中可用
-  - 安装方式：
-    ```powershell
-    winget install MSYS2.MSYS2
-    # 然后安装 mingw64 binutils
-    C:\msys64\usr\bin\pacman -S --noconfirm mingw-w64-x86_64-binutils
-    # 将 MSYS2 mingw64 bin 加入 PATH
-    export PATH="/c/msys64/mingw64/bin:$PATH"
-    ```
+项目可选用 MSVC（`x86_64-pc-windows-msvc`），但需要额外安装 Visual Studio Build Tools（约 3-5GB），而 GNU 方案仅需 MSYS2（约 500MB）。本项目所有依赖在 GNU 工具链下编译正常，推荐 GNU 路线以保持环境轻量。若确需 MSVC，参考下方[常见问题 6.3.3](#633-linkexe-not-found)。
 
 ### 安装依赖
 
@@ -245,10 +311,13 @@ curl -X POST http://127.0.0.1:37421/status \
 
 #### 6.3.2 `dlltool.exe: program not found`
 
-- 说明当前使用的是 GNU 工具链（`x86_64-pc-windows-gnu`），但缺少 binutils
-- 解决方式：
-  - 安装 MSYS2 或其他 MinGW 环境，并确保 `dlltool.exe` 在 PATH 中
-  - 或直接使用 Windows MSVC 工具链（推荐）
+- 说明当前使用的是 GNU 工具链（`x86_64-pc-windows-gnu`），但缺少 MinGW binutils
+- 解决方式（推荐，参考[步骤 4](#步骤-4安装-msys2--mingw-w64提供链接器)）：
+  ```powershell
+  winget install MSYS2.MSYS2
+  & "C:\msys64\usr\bin\pacman.exe" -S --needed --noconfirm mingw-w64-x86_64-toolchain
+  # 然后将 C:\msys64\mingw64\bin 加入 PATH（见步骤 5）
+  ```
 
 #### 6.3.3 `link.exe not found`
 
@@ -256,7 +325,7 @@ curl -X POST http://127.0.0.1:37421/status \
 - 说明当前已切换到 MSVC 工具链，但未安装 Visual C++ 链接器
 - 解决方式：
   1. 安装 Visual Studio Build Tools 或 Visual Studio
-  2. 勾选“Desktop development with C++”工作负载
+  2. 勾选"Desktop development with C++"工作负载
   3. 完成安装后，重新启动命令提示符或 PowerShell
   4. 在项目目录执行：
      ```powershell
@@ -266,20 +335,44 @@ curl -X POST http://127.0.0.1:37421/status \
 - 额外说明：
   - 如果你已经安装了 Visual Studio 但仍报错，确认 `Developer Command Prompt for VS` 能调用 `link.exe`
   - 也可通过 Visual Studio Installer 对现有安装追加 `MSVC v143 - VS 2022 C++ x64/x86 build tools`
+  - **本项目推荐 GNU 路线，通常无需走 MSVC**
 
-#### 6.3.4 Rust 编译报错 `STATUS_STACK_BUFFER_OVERRUN` 或 OS error 1455
+#### 6.3.4 `failed to decode icon ... Malformed PNG data: CRC error`
+
+- 错误表现：`cargo build` 在 `tauri::generate_context!()` 处报 `proc macro panicked`，提示 `icon.ico` 的 PNG chunk CRC 错误
+- 原因：`src-tauri/icons/icon.ico` 文件损坏或为占位符（`scripts/generate-icon.js` 旧版本生成的 ICO 内嵌 PNG 的 CRC 是占位符 `0x0`）
+- 解决方式：重新生成合法的 ICO 文件。Tauri 的 ICO 解码器要求内嵌 **BMP 格式**（非 PNG）：
+  ```powershell
+  # 用 Python 生成 BMP-based 多分辨率 ICO（16/32/48/64，绿色填充）
+  python -c "import struct,zlib,io
+def bmp(s):
+    rb=s*4; d=struct.pack('<IiiHHIIiiII',40,s,s*2,1,32,0,rb*s,0,0,0,0)
+    px=bytes([0x74,0xdc,0x35,0xff])*s
+    return d+b''.join(px*s for _ in range(s))
+def ico(szs):
+    n=len(szs); h=struct.pack('<HHH',0,1,n); img=[]; ent=[]; off=6+n*16
+    for s in szs:
+        b=bmp(s); img.append(b); wb=s if s<256 else 0
+        ent.append(struct.pack('<BBBBHHII',wb,wb,0,0,1,32,len(b),off)); off+=len(b)
+    return h+b''.join(ent)+b''.join(img)
+open(r'src-tauri/icons/icon.ico','wb').write(ico([16,32,48,64]))
+print('icon.ico regenerated')"
+  ```
+- 注意：`scripts/generate-icon.js` 依赖 Node.js，若当前环境无 Node，可直接用上面的 Python 方案。
+
+#### 6.3.5 Rust 编译报错 `STATUS_STACK_BUFFER_OVERRUN` 或 OS error 1455
 
 - 错误表现：编译器崩溃，退出码 `0xc0000409`
 - 原因：Rust 1.96+ 与 MSVC 工具链的 CET/Shadow Stack 保护不兼容
 - 解决方式：改用 GNU 工具链，参考 [6.3.2](#632-dlltoolexe-program-not-found)
 
-#### 6.3.5 crate 编译报错（`ambiguous associated type`、`cannot find trait Default` 等）
+#### 6.3.6 crate 编译报错（`ambiguous associated type`、`cannot find trait Default` 等）
 
 - 错误表现：`smallvec` / `syn` / `serde_core` 等 crate 报 100+ 编译错误
 - 原因：Rust 1.96+ 中 trait 解析规则变更
-- 解决方式：降级 Rust 版本至 `1.93 ~ 1.95`，详见上方 **Rust 版本说明**
+- 解决方式：降级 Rust 版本至 `1.94.0`，详见上方 **Rust 版本说明**
 
-#### 6.3.6 `页面文件太小，无法完成操作 (os error 1455)`
+#### 6.3.7 `页面文件太小，无法完成操作 (os error 1455)`
 
 - 错误表现：`could not execute process ... never executed`
 - 原因：系统虚拟内存不足，build script 进程无法启动
