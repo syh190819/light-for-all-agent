@@ -12,9 +12,28 @@
 
 - Node.js
 - npm
-- Rust toolchain（`cargo`）
+- Rust toolchain（`cargo`）— **注意版本，详见下方 Rust 版本说明**
 - Tauri CLI
 - Windows 环境（项目目前以 Windows 为主）
+
+### Rust 版本说明
+
+项目通过 `src-tauri/rust-toolchain.toml` 锁定 Rust 版本。
+
+**当前要求：**
+- 使用 GNU 工具链（`x86_64-pc-windows-gnu`）
+- 推荐 Rust **1.93 ~ 1.95** 版本（通过 `RUSTUP_DIST_SERVER=https://static.rust-lang.org rustup install` 安装）
+- **Rust 1.96+** 与依赖中的 `smallvec`、`syn` 等 crate 存在已知不兼容问题
+- 不推荐 MSVC 工具链（CET/Shadow Stack 保护可能导致编译器崩溃）
+
+切换版本命令：
+```bash
+# 安装指定版本（使用官方源）
+RUSTUP_DIST_SERVER=https://static.rust-lang.org rustup install 1.94.0-x86_64-pc-windows-gnu
+
+# 查看当前版本
+rustc --version
+```
 
 ### Windows 特定依赖
 
@@ -24,6 +43,14 @@
 - 如果使用 GNU 工具链：
   - 需要安装 MSYS2 或类似工具链
   - 确保 `dlltool.exe` 在 PATH 中可用
+  - 安装方式：
+    ```powershell
+    winget install MSYS2.MSYS2
+    # 然后安装 mingw64 binutils
+    C:\msys64\usr\bin\pacman -S --noconfirm mingw-w64-x86_64-binutils
+    # 将 MSYS2 mingw64 bin 加入 PATH
+    export PATH="/c/msys64/mingw64/bin:$PATH"
+    ```
 
 ### 安装依赖
 
@@ -239,6 +266,24 @@ curl -X POST http://127.0.0.1:37421/status \
 - 额外说明：
   - 如果你已经安装了 Visual Studio 但仍报错，确认 `Developer Command Prompt for VS` 能调用 `link.exe`
   - 也可通过 Visual Studio Installer 对现有安装追加 `MSVC v143 - VS 2022 C++ x64/x86 build tools`
+
+#### 6.3.4 Rust 编译报错 `STATUS_STACK_BUFFER_OVERRUN` 或 OS error 1455
+
+- 错误表现：编译器崩溃，退出码 `0xc0000409`
+- 原因：Rust 1.96+ 与 MSVC 工具链的 CET/Shadow Stack 保护不兼容
+- 解决方式：改用 GNU 工具链，参考 [6.3.2](#632-dlltoolexe-program-not-found)
+
+#### 6.3.5 crate 编译报错（`ambiguous associated type`、`cannot find trait Default` 等）
+
+- 错误表现：`smallvec` / `syn` / `serde_core` 等 crate 报 100+ 编译错误
+- 原因：Rust 1.96+ 中 trait 解析规则变更
+- 解决方式：降级 Rust 版本至 `1.93 ~ 1.95`，详见上方 **Rust 版本说明**
+
+#### 6.3.6 `页面文件太小，无法完成操作 (os error 1455)`
+
+- 错误表现：`could not execute process ... never executed`
+- 原因：系统虚拟内存不足，build script 进程无法启动
+- 解决方式：增大 Windows 虚拟内存，或关闭其他占用内存的应用
 
 ---
 

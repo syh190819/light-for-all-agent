@@ -39,7 +39,7 @@
 ## 技术栈
 
 - **前端**：HTML + CSS + JS（无框架，纯静态）
-- **后端**：Rust + Tauri v2
+- **后端**：Rust + Tauri v2（GNU 工具链，锁定 Rust 1.94）
 - **通信**：HTTP REST API（`127.0.0.1:37421`）
 - **包体**：~5MB 便携版 exe
 
